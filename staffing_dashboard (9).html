@@ -1,0 +1,1185 @@
+<html lang="en"><head><script>(function(firebaseConfig, initialAuthToken, appId) {
+        window.__firebase_config = firebaseConfig;
+        window.__initial_auth_token = initialAuthToken;
+        window.__app_id = appId;
+            })("\n{\n  \"apiKey\": \"AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY\",\n  \"authDomain\": \"bard-frontend.firebaseapp.com\",\n  \"projectId\": \"bard-frontend\",\n  \"storageBucket\": \"bard-frontend.firebasestorage.app\",\n  \"messagingSenderId\": \"175205271074\",\n  \"appId\": \"1:175205271074:web:2b7bd4d34d33bf38e6ec7b\"\n}\n","eyJhbGciOiJSUzI1NiIsImtpZCI6ImExZWJmY2U1ZjYwZWY5Y2NkMGViNTc3ZmI3ZjkxZGRjODg1MDA0YzAiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BiYXJkLWZyb250ZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJ1aWQiOiIwOTE2NjUwNjAyODU1MzAxNjc0MCIsImlzcyI6ImZpcmViYXNlLWFkbWluc2RrLWZic3ZjQGJhcmQtZnJvbnRlbmQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJjbGFpbXMiOnsiYXBwSWQiOiJjXzUwMWFiYzhiMDAxZGYzYjRfc3RhZmZpbmdfZGFzaGJvYXJkX3NwYV92MS0zMTEifSwiZXhwIjoxNzU2Mzc5MDIzLCJpYXQiOjE3NTYzNzU0MjMsImFsZyI6IlJTMjU2In0.AsxMqJ2U7uc_CIfN6T1git276pxXis4eyomIsEymLpWUJiJXV6FTz3iCrv_RUDOsRnZ3gToP-Ibk8JQR06h5N5Dz36eWmktb3Hl1Cgc3pEjtgaW5aLDGTRfPh65Q9XXlN_cXek5wn3YiyQttOcOPHIhq8oaIBMgphIEyjr0gF0Lz0i2MpXxtjqdXNqa7YOglHJ9r45hLRSeqAOUR6VmlAimxK1s-PZEA_XS4ekXnirHBaSxWB5KRD7_Lc6uv8VhSJM-2weSXcggddXZw0KS5d7Uix72b0xZ2wudcHlVHF30pyTPbLMZx3D41Cnv7zZMKCt9pA6qmPPiWkm3jKulakw","c_501abc8b001df3b4_staffing_dashboard_spa_v1-311")</script><script>(function() {
+  // Ensure this script is executed only once
+  if (window.firebaseAuthBridgeScriptLoaded) {
+    return;
+  }
+  window.firebaseAuthBridgeScriptLoaded = true;
+
+  let nextTokenPromiseId = 0;
+
+  // Stores { resolve, reject } for ongoing token requests
+  const pendingTokenPromises = {};
+
+  // Listen for messages from the Host Application
+  window.addEventListener('message', function(event) {
+
+    const messageData = event.data;
+
+  if (messageData && messageData.type === 'RESOLVE_NEW_FIREBASE_TOKEN') {
+      const { success, token, error, promiseId } = messageData ?? {};
+      if (pendingTokenPromises[promiseId]) {
+        if (success) {
+          pendingTokenPromises[promiseId].resolve(token);
+        } else {
+          pendingTokenPromises[promiseId].reject(new Error(error || 'Token refresh failed from host.'));
+        }
+        delete pendingTokenPromises[promiseId];
+      }
+    }
+  });
+
+  // Expose a function for the Generated App to request a new Firebase token
+  window.requestNewFirebaseToken = function() {
+    const currentPromiseId = nextTokenPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingTokenPromises[currentPromiseId] = { resolve, reject };
+    });
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'REQUEST_NEW_FIREBASE_TOKEN',
+        promiseId: currentPromiseId
+      }, '*');
+    } else {
+      pendingTokenPromises[currentPromiseId].reject(new Error('No parent window to request token from.'));
+      delete pendingTokenPromises[currentPromiseId];
+    }
+    return promise;
+  };
+})();</script><script>
+let realOriginalGetUserMedia = null;
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  realOriginalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+}
+
+(function() {
+  if (navigator.mediaDevices && navigator.mediaDevices.__proto__) {
+    try {
+      Object.defineProperty(navigator.mediaDevices.__proto__, 'getUserMedia', {
+        get: function() {
+          return undefined; // Or throw an error
+        },
+        configurable: false
+      });
+    } catch (error) {
+      console.error("Error defining prototype getter:", error);
+    }
+  }
+})();
+
+(function() {
+  const pendingMediaResolvers = {};
+  let nextMediaPromiseId = 0;
+
+  function requestMediaPermissions(constraints) {
+    const mediaPromiseId = nextMediaPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingMediaResolvers[mediaPromiseId] = (granted) => {
+        delete pendingMediaResolvers[mediaPromiseId];
+        resolve(granted);
+      };
+    });
+
+    window.parent.postMessage({
+      type: 'requestMediaPermission',
+      constraints: constraints,
+      promiseId: mediaPromiseId,
+    }, '*');
+
+    return promise;
+  }
+
+  let originalGetUserMedia = realOriginalGetUserMedia;
+
+  function interceptGetUserMedia() {
+    if (navigator.mediaDevices) {
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+        value: function(constraints) {
+          return requestMediaPermissions(constraints).then((granted) => {
+            if (granted) {
+              if (originalGetUserMedia) {
+                return originalGetUserMedia(constraints);
+              } else {
+                throw new Error("Original getUserMedia not available.");
+              }
+            } else {
+              throw new DOMException('Permission denied', 'NotAllowedError');
+            }
+          });
+        },
+        writable: false,
+        configurable: false
+      });
+    }
+  }
+
+  interceptGetUserMedia();
+
+  const observer = new MutationObserver(function(mutationsList, observer) {
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'reconfigured' && mutation.name === 'getUserMedia' && mutation.object === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'attributes' && mutation.attributeName === 'getUserMedia' && mutation.target === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'childList' && mutation.addedNodes) {
+        mutation.addedNodes.forEach(node => {
+          if (node === navigator.mediaDevices) {
+            interceptGetUserMedia();
+          }
+        });
+      }
+    }
+  });
+
+  function interceptSpeechRecognition() {
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+      return;
+    }
+
+    const OriginalSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const SpeechRecognitionWrapper = function(...args) {
+      const recognizer = new OriginalSpeechRecognition(...args);
+      const originalStart = recognizer.start.bind(recognizer);
+
+      recognizer.start = function() {
+        requestMediaPermissions({ audio: true }).then(granted => {
+          if (granted) {
+            originalStart();
+          } else {
+            const errorEvent = new SpeechRecognitionErrorEvent('error');
+            errorEvent.error = 'not-allowed'; // This is the standard error for permission denial.
+            recognizer.dispatchEvent(errorEvent);
+          }
+        });
+      };
+
+      return recognizer;
+    };
+
+    SpeechRecognitionWrapper.prototype = OriginalSpeechRecognition.prototype;
+    SpeechRecognitionWrapper.prototype.constructor = SpeechRecognitionWrapper;
+
+    if (window.SpeechRecognition) {
+      window.SpeechRecognition = SpeechRecognitionWrapper;
+    }
+    if (window.webkitSpeechRecognition) {
+      window.webkitSpeechRecognition = SpeechRecognitionWrapper;
+    }
+  }
+
+  interceptSpeechRecognition();
+
+  window.addEventListener('message', function(event) {
+    if (event.data) {
+      if (event.data.type === 'resolveMediaPermission') {
+        const { promiseId, granted } = event.data;
+        if (pendingMediaResolvers[promiseId]) {
+          pendingMediaResolvers[promiseId](granted);
+        }
+      }
+    }
+  });
+
+})();</script><script>((function(modelInformation) {
+  const originalFetch = window.fetch;
+  // TODO: b/421908508 - Move these out of the script and match all generative AI model calls.
+  let googleLlmBaseApiUrls = [
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':streamGenerateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageEditModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.ttsModelName + ':generateContent',
+  ];
+  modelInformation.deprecatedTextModelNames.forEach((modelName) => {
+    googleLlmBaseApiUrls.push(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
+    );
+  });
+
+  const pendingFetchResolvers = {};
+  let nextPromiseId = 0;
+
+  function handleStringInput(input, optionsArgument) {
+    const actualUrl = input;
+    const fetchCallArgs = [actualUrl, optionsArgument];
+    const effectiveOptions = optionsArgument || {};
+    const bodyForApiKeyCheck = effectiveOptions.body;
+    const bodyForPostMessage = effectiveOptions.body;
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  function handleRequestInput(input, optionsArgument) {
+    const actualUrl = input.url;
+    const fetchCallArgs = [input, optionsArgument];
+    const effectiveOptions = { method: input.method, headers: new Headers(input.headers) };
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (optionsArgument) {
+      if (optionsArgument.method) effectiveOptions.method = optionsArgument.method;
+      if (optionsArgument.headers) effectiveOptions.headers = new Headers(optionsArgument.headers);
+      if ('body' in optionsArgument) {
+        bodyForApiKeyCheck = optionsArgument.body;
+        bodyForPostMessage = optionsArgument.body;
+      } else {
+        bodyForApiKeyCheck = undefined;
+        bodyForPostMessage = input.body;
+      }
+    } else {
+      bodyForApiKeyCheck = undefined;
+      bodyForPostMessage = input.body;
+    }
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  window.fetch = function(input, optionsArgument) {
+    let actualUrl;
+    let fetchCallArgs;
+    let effectiveOptions = {};
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (typeof input === 'string') {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleStringInput(input, optionsArgument));
+    } else if (input instanceof Request) {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleRequestInput(input, optionsArgument));
+    } else {
+      return originalFetch.apply(window, [input, optionsArgument]);
+    }
+
+    effectiveOptions.method = effectiveOptions.method || 'GET';
+    if (!effectiveOptions.headers) {
+      effectiveOptions.headers = new Headers();
+    }
+
+
+    if (typeof actualUrl === 'string' && googleLlmBaseApiUrls.some((url) => actualUrl.startsWith(url))) {
+      let apiKeyIsNull = true;
+
+      const regex = new RegExp("models/([^:]+)");
+      const modelNameMatch = actualUrl.match(regex);
+      const modelName = modelNameMatch ? modelNameMatch[1] : 'unspecified';
+
+
+      try {
+        const urlObject = new URL(actualUrl);  // Use URL object for robust parsing
+        const apiKeyParam = urlObject.searchParams.get('key');
+        if (apiKeyParam) {
+          apiKeyIsNull = false;
+        }
+      } catch (e) {
+        // Continue checks even if URL parsing fails
+      }
+
+      if (apiKeyIsNull && effectiveOptions.headers) {
+        const h = new Headers(effectiveOptions.headers);
+        const apiKeyHeaderValue = h.get('X-API-Key') || h.get('x-api-key');
+        if (apiKeyHeaderValue) {
+          apiKeyIsNull = false;
+          return originalFetch.apply(window, fetchCallArgs);
+        }
+      }
+
+      if (apiKeyIsNull && effectiveOptions.method && ['POST', 'PUT', 'PATCH'].includes(effectiveOptions.method.toUpperCase()) && typeof bodyForApiKeyCheck === 'string') {
+        try {
+          const bodyData = JSON.parse(bodyForApiKeyCheck);
+          if (bodyData && bodyData.apiKey) {
+            apiKeyIsNull = false;
+            return originalFetch.apply(window, fetchCallArgs);
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      if(apiKeyIsNull) {
+        const promiseId = nextPromiseId++;
+        const promise = new Promise((resolve) => {
+          pendingFetchResolvers[promiseId] = (resolvedResponse) => {
+            delete pendingFetchResolvers[promiseId];
+            resolve(resolvedResponse);
+          };
+        });
+
+        let serializedBodyForPostMessage;
+        if (typeof bodyForPostMessage === 'string' || bodyForPostMessage == null) {
+            serializedBodyForPostMessage = bodyForPostMessage;
+        } else if (bodyForPostMessage instanceof ReadableStream) {
+            serializedBodyForPostMessage = null;
+        } else {
+            try {
+                serializedBodyForPostMessage = JSON.stringify(bodyForPostMessage);
+            } catch (e) {
+                serializedBodyForPostMessage = null;
+            }
+        }
+
+        const messageOptions = {
+            method: effectiveOptions.method,
+            headers: Object.fromEntries(new Headers(effectiveOptions.headers).entries()),
+            body: serializedBodyForPostMessage
+        };
+
+        window.parent.postMessage({
+          type: 'requestFetch',
+          url: actualUrl,
+          modelName: modelName,
+          options: messageOptions,
+          promiseId: promiseId,
+        }, '*');
+
+        return promise;
+      }
+      return originalFetch.apply(window, fetchCallArgs);
+    }
+    return originalFetch.apply(window, fetchCallArgs);
+  };
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'resolveFetch') {
+      const { promiseId, response } = event.data;
+      if (pendingFetchResolvers[promiseId]) {
+        try {
+          const reconstructedResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: new Headers(response.headers),
+          });
+          pendingFetchResolvers[promiseId](reconstructedResponse);
+        } catch (error) {
+          pendingFetchResolvers[promiseId](new Response(null, { status: 500, statusText: "Interceptor Response Reconstruction Error" }));
+        }
+      }
+    }
+  });
+
+}))({"textModelName":"gemini-2.5-flash-preview-05-20","imageModelName":"imagen-3.0-generate-002","imageEditModelName":"gemini-2.5-flash-image-preview","videoModelName":"veo-2.0-generate-001","ttsModelName":"gemini-2.5-flash-preview-tts","deprecatedTextModelNames":["gemini-2.0-flash","gemini-2.5-flash-preview-04-17"]})</script><script>(function() {
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+    /**
+   * Normalizes an error event or a promise rejection reason into a structured error object.
+   * @param {*} errorEventOrReason The error object or reason.
+   * @return {object} Structured error data { message, name, stack }.
+   */
+  function getErrorObject(errorEventOrReason) {
+    if (errorEventOrReason instanceof Error) {
+      return {
+        message: errorEventOrReason.message,
+        name: errorEventOrReason.name,
+        stack: errorEventOrReason.stack,
+      };
+    }
+    // Fallback for non-Error objects.
+    try {
+      return {
+        message: JSON.stringify(errorEventOrReason),
+        name: 'UnknownErrorType',
+        stack: null,
+      };
+    } catch (e) {
+      return {
+        message: String(errorEventOrReason),
+        name: 'UnknownErrorTypeNonStringifiable',
+        stack: null,
+      };
+    }
+  }
+
+  /**
+   * Converts an array of arguments (from log/error) into a single string.
+   * Handles Error objects specially to include their message and stack.
+   * @param {Array<*>} args - Arguments passed to console methods.
+   * @return {string} A string representation of the arguments.
+   */
+  function stringifyArgs(args) {
+    return args
+      .map((arg) => {
+        if (arg instanceof Error) {
+          const {message, stack} = arg;
+          return `Error: ${message}${stack ? ('\nStack: ' + stack) : ''}`;
+        }
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch (error) {
+            return '[Circular Object]';
+          }
+        } else {
+          return String(arg);
+        }
+      })
+      .join(' ');
+  }
+
+  console.log = function(...args) {
+    const logString = stringifyArgs(args);
+    window.parent.postMessage({ type: 'log', message: logString }, '*');
+    originalConsoleLog.apply(console, args);
+  };
+
+  console.error = function(...args) {
+    let errorData;
+    if (args.length > 0 && args[0] instanceof Error) {
+      const err = args[0];
+      // If the first arg is an Error, capture its details.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        ...getErrorObject(err),
+        rawArgsString: stringifyArgs(args.slice(1)),
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      // If not an Error object, treat all args as a general error message.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        message: stringifyArgs(args),
+        name: 'ConsoleLoggedError',
+        stack: null,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    window.parent.postMessage(errorData, '*');
+    originalConsoleError.apply(console, args);
+  };
+
+  // Listen for global unhandled synchronous errors.
+  window.addEventListener('error', function(event) {
+    const errorDetails = event.error ? getErrorObject(event.error) : {
+      message: event.message,
+      name: 'GlobalError',
+      stack: null,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    };
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'global',
+      ...errorDetails,
+      message: errorDetails.message || event.message,
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+  // Listen for unhandled promise rejections (asynchronous errors).
+  window.addEventListener('unhandledrejection', function(event) {
+    const errorDetails = getErrorObject(event.reason);
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'unhandledrejection',
+      ...errorDetails,
+      message: errorDetails.message || 'Unhandled Promise Rejection',
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Staffing Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The application is designed as a single-page dashboard. This structure was chosen to provide users with a comprehensive overview and detailed insights in one view, which is ideal for a tracking tool. The top section features key performance indicators (KPIs) for immediate strategic insights. Below this, interactive filters allow users to dynamically segment the data. The main body consists of two parts: visual charts for trend analysis (Open Reqs by Location/Department) and a detailed, filterable table for tactical, granular tracking of each requisition. This dual approach directly translates the report's concept of a strategic and tactical tool into a functional, user-friendly interface. The user flow is top-down: from high-level summary to filtered analysis to specific details. The new AI-powered tools are integrated as a separate section to offer additional utility without cluttering core tracking features. A download button is added for easy offline access and data modification. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Key metrics (Total Reqs, Filled, Avg. Time-to-Fill, Overdue). Goal: Inform. Viz/Method: Large number "Stat Cards" using HTML/CSS. Interaction: None. Justification: Provides immediate, high-level status.
+        - Report Info: Open requisitions across different locations. Goal: Compare. Viz/Method: Bar chart. Interaction: Tooltips on hover, dynamic updates from filters. Justification: Bar charts are excellent for comparing discrete categories. Library: Chart.js.
+        - Report Info: Requisition pipeline stages. Goal: Show Process/Flow. Viz/Method: Doughnut chart. Interaction: Dynamic updates from filters. Justification: Visualizes the proportion of requisitions in each stage. Library: Chart.js.
+        - Report Info: Detailed list of all requisitions (Table 1). Goal: Organize/Inform. Viz/Method: Interactive HTML Table. Interaction: Filtering and sorting based on user selections. Justification: Provides granular, tactical data access as requested. Method: Vanilla JS + Tailwind CSS.
+        - Gemini Integration 1: Job Description Generation. Goal: Assist/Generate. Viz/Method: Input fields, button, text area for output. Interaction: User input -> API call -> display generated text. Justification: Automates a common recruitment task. Library: Gemini API (gemini-2.5-flash-preview-05-20).
+        - Gemini Integration 2: Hiring Strategy Suggestions. Goal: Advise/Suggest. Viz/Method: Button, text area for output. Interaction: Click button -> API call based on current dashboard data -> display suggestions. Justification: Provides actionable insights for current requisitions. Library: Gemini API (gemini-2.5-flash-preview-05-20).
+        - Download Feature: Goal: Provide offline access. Viz/Method: Button. Interaction: Click to download current HTML content. Justification: Allows users to save and edit the dashboard. Method: Vanilla JS for data URI creation.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .table-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-4{margin-top:1rem}.block{display:block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.w-full{width:100%}.min-w-full{min-width:100%}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-gray-200 > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(229 231 235 / var(--tw-divide-opacity, 1))}.overflow-x-auto{overflow-x:auto}.whitespace-pre-wrap{white-space:pre-wrap}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.border{border-width:1px}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-gray-200{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-indigo-600{--tw-bg-opacity:1;background-color:rgb(79 70 229 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.p-2{padding:0.5rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-8{padding-top:2rem;padding-bottom:2rem}.text-left{text-align:left}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tracking-wider{letter-spacing:0.05em}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-300:hover{--tw-bg-opacity:1;background-color:rgb(209 213 219 / var(--tw-bg-opacity, 1))}.hover\:bg-indigo-700:hover{--tw-bg-opacity:1;background-color:rgb(67 56 202 / var(--tw-bg-opacity, 1))}.focus\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.focus\:border-indigo-500:focus{--tw-border-opacity:1;border-color:rgb(99 102 241 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246 / var(--tw-ring-opacity, 1))}.focus\:ring-gray-400:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(156 163 175 / var(--tw-ring-opacity, 1))}.focus\:ring-indigo-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(99 102 241 / var(--tw-ring-opacity, 1))}.focus\:ring-offset-2:focus{--tw-ring-offset-width:2px}@media (min-width: 640px){.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}}@media (min-width: 768px){.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:p-8{padding:2rem}}@media (min-width: 1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}</style><style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-4{margin-top:1rem}.block{display:block}.flex{display:flex}.table-cell{display:table-cell}.grid{display:grid}.hidden{display:none}.w-full{width:100%}.min-w-full{min-width:100%}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-gray-200 > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(229 231 235 / var(--tw-divide-opacity, 1))}.overflow-x-auto{overflow-x:auto}.whitespace-nowrap{white-space:nowrap}.whitespace-pre-wrap{white-space:pre-wrap}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.border{border-width:1px}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-gray-200{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-indigo-600{--tw-bg-opacity:1;background-color:rgb(79 70 229 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.bg-teal-100{--tw-bg-opacity:1;background-color:rgb(204 251 241 / var(--tw-bg-opacity, 1))}.p-2{padding:0.5rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-8{padding-top:2rem;padding-bottom:2rem}.py-4{padding-top:1rem;padding-bottom:1rem}.text-left{text-align:left}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tracking-wider{letter-spacing:0.05em}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-blue-800{--tw-text-opacity:1;color:rgb(30 64 175 / var(--tw-text-opacity, 1))}.text-teal-800{--tw-text-opacity:1;color:rgb(17 94 89 / var(--tw-text-opacity, 1))}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-300:hover{--tw-bg-opacity:1;background-color:rgb(209 213 219 / var(--tw-bg-opacity, 1))}.hover\:bg-indigo-700:hover{--tw-bg-opacity:1;background-color:rgb(67 56 202 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-50:hover{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.focus\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.focus\:border-indigo-500:focus{--tw-border-opacity:1;border-color:rgb(99 102 241 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246 / var(--tw-ring-opacity, 1))}.focus\:ring-gray-400:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(156 163 175 / var(--tw-ring-opacity, 1))}.focus\:ring-indigo-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(99 102 241 / var(--tw-ring-opacity, 1))}.focus\:ring-offset-2:focus{--tw-ring-offset-width:2px}@media (min-width: 640px){.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}}@media (min-width: 768px){.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:p-8{padding:2rem}}@media (min-width: 1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}</style></head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Strategic Staffing Dashboard</h1>
+                <p class="text-gray-600 mt-1">An interactive tool for tracking and analyzing open requisitions with AI assistance.</p>
+            </div>
+            <button id="download-dashboard-btn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 flex items-center justify-center">
+                ⬇️ Download Dashboard
+            </button>
+        </header>
+
+        <main>
+            <!-- KPIs Section -->
+            <section id="kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500">Total Open Requisitions</h3>
+                    <p id="total-reqs" class="text-3xl font-semibold mt-2">10</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500">Positions Filled (Last 90d)</h3>
+                    <p id="filled-reqs" class="text-3xl font-semibold mt-2">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500">Avg. Time-to-Fill (Days)</h3>
+                    <p id="avg-time-to-fill" class="text-3xl font-semibold mt-2">N/A</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500">Overdue Requisitions</h3>
+                    <p id="overdue-reqs" class="text-3xl font-semibold mt-2 text-red-500">0</p>
+                </div>
+            </section>
+
+            <!-- Filters Section -->
+            <section id="filters" class="bg-white p-4 rounded-lg shadow-sm mb-8">
+                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="location-filter" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                        <select id="location-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"><option value="all">All Locations</option><option value="Bengaluru">Bengaluru</option><option value="Greece">Greece</option><option value="Hyderabad">Hyderabad</option></select>
+                    </div>
+                    <div>
+                        <label for="department-filter" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                        <select id="department-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"><option value="all">All Departments</option><option value="AI/ML">AI/ML</option><option value="Engineering">Engineering</option><option value="Sales">Sales</option></select>
+                    </div>
+                    <div>
+                        <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">Current Status</label>
+                        <select id="status-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"><option value="all">All Statuses</option><option value="Sourcing Candidates">Sourcing Candidates</option><option value="Screening">Screening</option><option value="Tech Interview - Round 1">Tech Interview - Round 1</option><option value="Tech Interview - Round 2">Tech Interview - Round 2</option><option value="Assessment / Test Drive">Assessment / Test Drive</option><option value="Hiring Manager Interview">Hiring Manager Interview</option><option value="Leadership Interview">Leadership Interview</option><option value="Final Interview">Final Interview</option><option value="Offer Discussion">Offer Discussion</option><option value="Offer Accepted">Offer Accepted</option><option value="Onboarding">Onboarding</option></select>
+                    </div>
+                     <div>
+                        <label for="priority-filter" class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                        <select id="priority-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section id="charts" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold mb-4">Open Requisitions by Location</h3>
+                    <p class="text-sm text-gray-600 mb-4">This chart displays the distribution of open job requisitions across different company locations. Use the filters to narrow down the data and identify hiring needs in specific areas.</p>
+                    <div class="chart-container">
+                        <canvas id="locationChart" width="600" height="350" style="display: block; box-sizing: border-box; height: 350px; width: 600px;"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold mb-4">Requisitions by Current Status</h3>
+                    <p class="text-sm text-gray-600 mb-4">This chart visualizes the current stage of all open requisitions in the hiring pipeline. It helps identify potential bottlenecks and track the overall progress of recruitment efforts.</p>
+                    <div class="chart-container">
+                        <canvas id="statusChart" width="600" height="350" style="display: block; box-sizing: border-box; height: 350px; width: 600px;"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI-Powered Tools Section -->
+            <section id="ai-tools" class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">✨ AI-Powered Recruitment Tools</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">Job Description Generator</h3>
+                        <p class="text-sm text-gray-600 mb-4">Generate a draft job description using AI based on a job title and location. This can speed up the initial drafting phase for new requisitions.</p>
+                        <div class="mb-4">
+                            <label for="jd-title-input" class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                            <input type="text" id="jd-title-input" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Senior Software Engineer">
+                        </div>
+                        <div class="mb-4">
+                            <label for="jd-location-input" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <input type="text" id="jd-location-input" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Remote or New York">
+                        </div>
+                        <button id="generate-jd-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+                            ✨ Generate Job Description
+                            <span id="jd-spinner" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="jd-output" class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 whitespace-pre-wrap hidden"></div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">Hiring Strategy Suggestions</h3>
+                        <p class="text-sm text-gray-600 mb-4">Get AI-driven suggestions to optimize your hiring strategy for the currently filtered open requisitions. This can provide fresh perspectives and accelerate time-to-fill.</p>
+                        <button id="suggest-strategy-btn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center">
+                            ✨ Get Hiring Strategies
+                            <span id="strategy-spinner" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="strategy-output" class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 whitespace-pre-wrap hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table Section -->
+            <section id="requisition-table" class="bg-white p-6 rounded-lg shadow-sm">
+                 <h3 class="text-lg font-semibold mb-4">Detailed Requisition Tracker</h3>
+                 <p class="text-sm text-gray-600 mb-4">This table provides a detailed, tactical view of every open requisition. Use the filters above to search and segment the data. The information here serves as the single source of truth for all active hiring processes.</p>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Req ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hiring Manager</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Opened</th>
+                            </tr>
+                        </thead>
+                        <tbody id="req-table-body" class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">379-1</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sustaining engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Ramesh Babu</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Hyderabad</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-teal-100 text-teal-800">Offer Accepted</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-15</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">379-2</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sustaining engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Ramesh Babu</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Hyderabad</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-26</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">NA</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sr AIOPS engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Luxie</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Bengaluru</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Sales</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-26</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">210</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sr Devops Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Dinar Dalvi</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Hyderabad</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-26</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">328</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sr Devops Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Dinar Dalvi</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-26</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">177</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sr SDET</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Leonid</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-26</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">NA</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Software Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Nimish</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-teal-100 text-teal-800">Offer Accepted</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-15</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">NA</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Staff ML Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Vasilis</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">AI/ML</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-11</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">NA</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Staff ML Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Vasilis</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">AI/ML</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-blue-100 text-blue-800">Sourcing Candidates</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-11</td>
+                        </tr>
+                    
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">NA</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">Sr Software Engineer</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">Nimish</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Greece</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">High</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge bg-teal-100 text-teal-800">Offer Accepted</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-08-10</td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const hiringStatuses = [
+                'Sourcing Candidates', 'Screening', 'Tech Interview - Round 1', 
+                'Tech Interview - Round 2', 'Assessment / Test Drive', 'Hiring Manager Interview', 
+                'Leadership Interview', 'Final Interview', 'Offer Discussion', 'Offer Accepted', 
+                'Onboarding', 'Filled', 'Canceled'
+            ];
+
+            const statusColors = {
+                'Sourcing Candidates': { bg: 'bg-blue-100', text: 'text-blue-800' },
+                'Screening': { bg: 'bg-indigo-100', text: 'text-indigo-800' },
+                'Tech Interview - Round 1': { bg: 'bg-purple-100', text: 'text-purple-800' },
+                'Tech Interview - Round 2': { bg: 'bg-purple-100', text: 'text-purple-800' },
+                'Assessment / Test Drive': { bg: 'bg-pink-100', text: 'text-pink-800' },
+                'Hiring Manager Interview': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+                'Leadership Interview': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+                'Final Interview': { bg: 'bg-purple-100', text: 'text-purple-800' },
+                'Offer Discussion': { bg: 'bg-orange-100', text: 'text-orange-800' },
+                'Offer Accepted': { bg: 'bg-teal-100', text: 'text-teal-800' },
+                'Onboarding': { bg: 'bg-green-100', text: 'text-green-800' },
+                'Filled': { bg: 'bg-green-200', text: 'text-green-900' },
+                'Canceled': { bg: 'bg-red-100', text: 'text-red-800' }
+            };
+
+            const mockRequisitions = [
+                { id: '379-1', title: 'Sustaining engineer', manager: 'Ramesh Babu', location: 'Hyderabad', department: 'Engineering', priority: 'High', status: 'Offer Accepted', dateOpened: '2025-08-15', dateFilled: null },
+                { id: '379-2', title: 'Sustaining engineer', manager: 'Ramesh Babu', location: 'Hyderabad', department: 'Engineering', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-26', dateFilled: null },
+                { id: 'NA', title: 'Sr AIOPS engineer', manager: 'Luxie', location: 'Bengaluru', department: 'Sales', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-26', dateFilled: null },
+                { id: '210', title: 'Sr Devops Engineer', manager: 'Dinar Dalvi', location: 'Hyderabad', department: 'Engineering', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-26', dateFilled: null },
+                { id: '328', title: 'Sr Devops Engineer', manager: 'Dinar Dalvi', location: 'Greece', department: 'Engineering', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-26', dateFilled: null },
+                { id: '177', title: 'Sr SDET', manager: 'Leonid', location: 'Greece', department: 'Engineering', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-26', dateFilled: null },
+                { id: 'NA', title: 'Software Engineer', manager: 'Nimish', location: 'Greece', department: 'Engineering', priority: 'High', status: 'Offer Accepted', dateOpened: '2025-08-15', dateFilled: null },
+                { id: 'NA', title: 'Staff ML Engineer', manager: 'Vasilis', location: 'Greece', department: 'AI/ML', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-11', dateFilled: null },
+                { id: 'NA', title: 'Staff ML Engineer', manager: 'Vasilis', location: 'Greece', department: 'AI/ML', priority: 'High', status: 'Sourcing Candidates', dateOpened: '2025-08-11', dateFilled: null },
+                { id: 'NA', title: 'Sr Software Engineer', manager: 'Nimish', location: 'Greece', department: 'Engineering', priority: 'High', status: 'Offer Accepted', dateOpened: '2025-08-10', dateFilled: null },
+                
+            ];
+
+            const locationFilter = document.getElementById('location-filter');
+            const departmentFilter = document.getElementById('department-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const priorityFilter = document.getElementById('priority-filter');
+            
+            const reqTableBody = document.getElementById('req-table-body');
+
+            const totalReqsEl = document.getElementById('total-reqs');
+            const filledReqsEl = document.getElementById('filled-reqs');
+            const avgTimeToFillEl = document.getElementById('avg-time-to-fill');
+            const overdueReqsEl = document.getElementById('overdue-reqs');
+
+            const jdTitleInput = document.getElementById('jd-title-input');
+            const jdLocationInput = document.getElementById('jd-location-input');
+            const generateJdBtn = document.getElementById('generate-jd-btn');
+            const jdOutput = document.getElementById('jd-output');
+            const jdSpinner = document.getElementById('jd-spinner');
+
+            const suggestStrategyBtn = document.getElementById('suggest-strategy-btn');
+            const strategyOutput = document.getElementById('strategy-output');
+            const strategySpinner = document.getElementById('strategy-spinner');
+
+            const downloadDashboardBtn = document.getElementById('download-dashboard-btn');
+
+            let locationChart, statusChart;
+            let currentFilteredRequisitions = [];
+
+            const API_KEY = "";
+
+            async function exponentialBackoffFetch(url, options, retries = 5, delay = 1000) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            await new Promise(res => setTimeout(res, delay));
+                            return exponentialBackoffFetch(url, options, retries - 1, delay * 2);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (retries > 0) {
+                        await new Promise(res => setTimeout(res, delay));
+                        return exponentialBackoffFetch(url, options, retries - 1, delay * 2);
+                    }
+                    throw error;
+                }
+            }
+
+            async function callGeminiAPI(prompt, spinnerElement, outputElement) {
+                spinnerElement.classList.remove('hidden');
+                outputElement.classList.add('hidden');
+                outputElement.textContent = '';
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+                try {
+                    const response = await exponentialBackoffFetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        outputElement.textContent = text;
+                        outputElement.classList.remove('hidden');
+                    } else {
+                        outputElement.textContent = "Error: Could not generate content. Please try again.";
+                        outputElement.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    outputElement.textContent = `Error: ${error.message}. Please check your network connection or try again later.`;
+                    outputElement.classList.remove('hidden');
+                } finally {
+                    spinnerElement.classList.add('hidden');
+                }
+            }
+
+
+            function populateFilters() {
+                // Location Filter
+                const currentSelectedLocation = locationFilter.value;
+                locationFilter.innerHTML = '<option value="all">All Locations</option>'; // Clear and re-add default
+                const locations = [...new Set(mockRequisitions.map(r => r.location))];
+                locations.sort().forEach(loc => { // Sort for better UX
+                    const option = document.createElement('option');
+                    option.value = loc;
+                    option.textContent = loc;
+                    locationFilter.appendChild(option);
+                });
+                locationFilter.value = currentSelectedLocation; // Restore selection
+
+                // Department Filter
+                const currentSelectedDepartment = departmentFilter.value;
+                departmentFilter.innerHTML = '<option value="all">All Departments</option>'; // Clear and re-add default
+                const departments = [...new Set(mockRequisitions.map(r => r.department))];
+                departments.sort().forEach(dep => { // Sort for better UX
+                    const option = document.createElement('option');
+                    option.value = dep;
+                    option.textContent = dep;
+                    departmentFilter.appendChild(option);
+                });
+                departmentFilter.value = currentSelectedDepartment; // Restore selection
+
+                // Status Filter
+                const currentSelectedStatus = statusFilter.value;
+                statusFilter.innerHTML = '<option value="all">All Statuses</option>'; // Clear and re-add default
+                // Only add statuses that are not 'Filled' or 'Canceled' for active filtering
+                hiringStatuses.filter(stat => stat !== 'Filled' && stat !== 'Canceled').forEach(stat => { 
+                    const option = document.createElement('option');
+                    option.value = stat;
+                    option.textContent = stat;
+                    statusFilter.appendChild(option);
+                });
+                statusFilter.value = currentSelectedStatus; // Restore selection
+
+                // Priority filter is static in HTML, no need to populate via JS here unless dynamic priorities are introduced
+            }
+
+            function renderTable(data) {
+                reqTableBody.innerHTML = '';
+                if (data.length === 0) {
+                    reqTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-500">No requisitions match the current filters.</td></tr>`;
+                    return;
+                }
+                data.forEach(req => {
+                    const color = statusColors[req.status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+                    const row = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${req.id}</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-800">${req.title}</td>
+                            <td class="px-6 py-4 table-cell text-sm text-gray-500">${req.manager}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.location}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.department}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.priority}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-badge ${color.bg} ${color.text}">${req.status}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.dateOpened}</td>
+                        </tr>
+                    `;
+                    reqTableBody.innerHTML += row;
+                });
+            }
+
+            function updateKPIs(data) {
+                const openReqs = data.filter(r => r.status !== 'Filled' && r.status !== 'Canceled');
+                totalReqsEl.textContent = openReqs.length;
+
+                const ninetyDaysAgo = new Date();
+                ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+                const filledLast90d = mockRequisitions.filter(r => r.status === 'Filled' && r.dateFilled && new Date(r.dateFilled) > ninetyDaysAgo);
+                filledReqsEl.textContent = filledLast90d.length;
+
+                const filledReqs = mockRequisitions.filter(r => r.status === 'Filled' && r.dateFilled);
+                if(filledReqs.length > 0) {
+                    const totalDays = filledReqs.reduce((sum, req) => {
+                        const start = new Date(req.dateOpened);
+                        const end = new Date(req.dateFilled);
+                        const diffTime = Math.abs(end - start);
+                        return sum + Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    }, 0);
+                    avgTimeToFillEl.textContent = Math.round(totalDays / filledReqs.length);
+                } else {
+                    avgTimeToFillEl.textContent = 'N/A';
+                }
+
+                const today = new Date();
+                const overdue = openReqs.filter(r => {
+                    const openedDate = new Date(r.dateOpened);
+                    const diffTime = Math.abs(today - openedDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays > 60;
+                }).length;
+                overdueReqsEl.textContent = overdue;
+            }
+
+            function updateCharts(data) {
+                const openData = data.filter(r => r.status !== 'Filled' && r.status !== 'Canceled');
+                
+                // Location Chart
+                const locationCounts = openData.reduce((acc, req) => {
+                    acc[req.location] = (acc[req.location] || 0) + 1;
+                    return acc;
+                }, {});
+                const locationLabels = Object.keys(locationCounts);
+                const locationData = Object.values(locationCounts);
+
+                if (locationChart) locationChart.destroy();
+                locationChart = new Chart(document.getElementById('locationChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: locationLabels,
+                        datasets: [{
+                            label: 'Open Reqs',
+                            data: locationData,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // Status Chart
+                const statusCounts = openData.reduce((acc, req) => {
+                    acc[req.status] = (acc[req.status] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const sortedStatuses = Object.entries(statusCounts).sort(([,a],[,b]) => b-a);
+                const statusLabels = sortedStatuses.map(s => s[0]);
+                const statusData = sortedStatuses.map(s => s[1]);
+
+                if (statusChart) statusChart.destroy();
+                statusChart = new Chart(document.getElementById('statusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: statusLabels,
+                        datasets: [{
+                            label: 'Requisitions',
+                            data: statusData,
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)',
+                                'rgba(245, 158, 11, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)',
+                                'rgba(99, 102, 241, 0.8)'
+                            ],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateDashboard() {
+                const selectedLocation = locationFilter.value;
+                const selectedDepartment = departmentFilter.value;
+                const selectedStatus = statusFilter.value;
+                const selectedPriority = priorityFilter.value;
+
+                const filteredData = mockRequisitions.filter(req => {
+                    const isOpen = req.status !== 'Filled' && req.status !== 'Canceled';
+                    const locationMatch = selectedLocation === 'all' || req.location === selectedLocation;
+                    const departmentMatch = selectedDepartment === 'all' || req.department === selectedDepartment;
+                    const statusMatch = selectedStatus === 'all' || req.status === selectedStatus;
+                    const priorityMatch = selectedPriority === 'all' || req.priority === selectedPriority;
+                    return isOpen && locationMatch && departmentMatch && statusMatch && priorityMatch;
+                });
+
+                currentFilteredRequisitions = filteredData;
+                renderTable(filteredData);
+                updateKPIs(mockRequisitions);
+                updateCharts(filteredData);
+            }
+
+            generateJdBtn.addEventListener('click', async () => {
+                const jobTitle = jdTitleInput.value.trim();
+                const jobLocation = jdLocationInput.value.trim();
+                if (jobTitle) {
+                    const prompt = `Generate a comprehensive job description for a ${jobTitle} position ${jobLocation ? `in ${jobLocation}` : 'remotely'}. Include responsibilities, qualifications (required and preferred), and a brief company overview.`;
+                    await callGeminiAPI(prompt, jdSpinner, jdOutput);
+                } else {
+                    jdOutput.textContent = "Please enter a job title to generate a job description.";
+                    jdOutput.classList.remove('hidden');
+                }
+            });
+
+            suggestStrategyBtn.addEventListener('click', async () => {
+                if (currentFilteredRequisitions.length > 0) {
+                    const prompt = `Based on the following open requisitions, suggest strategies to accelerate the hiring process and address any potential bottlenecks. Focus on common issues like long time-to-fill, specific locations with many openings, or stages with high drop-off.
+Requisitions: ${JSON.stringify(currentFilteredRequisitions.map(r => ({ id: r.id, title: r.title, location: r.location, status: r.status, dateOpened: r.dateOpened })))}`;
+                    await callGeminiAPI(prompt, strategySpinner, strategyOutput);
+                } else {
+                    strategyOutput.textContent = "No open requisitions are currently filtered to suggest strategies for. Please adjust filters or ensure there are open jobs.";
+                    strategyOutput.classList.remove('hidden');
+                }
+            });
+
+            downloadDashboardBtn.addEventListener('click', () => {
+                const htmlContent = document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'staffing_dashboard.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            });
+
+            // Initialize filters and dashboard
+            populateFilters();
+            updateDashboard();
+
+            // Add event listeners for filter changes
+            [locationFilter, departmentFilter, statusFilter, priorityFilter].forEach(filter => {
+                filter.addEventListener('change', updateDashboard);
+            });
+        });
+    </script>
+
+
+</body></html>
